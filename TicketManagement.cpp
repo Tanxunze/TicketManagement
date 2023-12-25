@@ -24,39 +24,48 @@ private:
     vector<Flight> flights; // 存储所有航班信息
 
 public:
-    void addFlight(const Flight& flight) {
-        flights.push_back(flight);
-    }
-
-   /* void saveFlightsToFile(const string& filename) {
-        ofstream file(filename, ios::out | ios::binary);
-        for (const auto& flight : flights) {
-            file.write((char*)&flight, sizeof(Flight));
-        }
-        file.close();
-    }
-
-    void loadFlightsFromFile(const string& filename) {
+    void addFlight() {
         Flight flight;
-        ifstream file(filename, ios::in | ios::binary);
-        if (!file) {
-            cout << "无法打开文件或文件不存在: " << filename << endl;
-            return;
-        }
-        while (file.read((char*)&flight, sizeof(Flight))) {
-            flights.push_back(flight);
-        }
-        file.close();
-    }*/
-    void saveFlightsToFile(const string& filename) {
-        // 以追加模式打开文件
-        ofstream file(filename, ios::app);
+
+        cout << "请输入航班号: ";
+        cin >> flight.flightNumber;
+
+        cout << "请输入起飞时间 (例如 08:00): ";
+        cin >> flight.departureTime;
+
+        cout << "请输入起点站: ";
+        cin >> flight.startPoint;
+
+        cout << "请输入终点站: ";
+        cin >> flight.endPoint;
+
+        cout << "请输入预计飞行时间（小时）: ";
+        cin >> flight.flightDuration;
+
+        cout << "请输入最大载客量: ";
+        cin >> flight.maxCapacity;
+
+        flight.bookedPassengers = 0;  // 新航班默认已定票人数为0
+        flight.hasTakenOff = false;   // 新航班默认尚未起飞
+
+        // 添加航班信息到列表
+        flights.push_back(flight);
+        cout << "航班信息已添加.\n";
+    }
+
+
+
+    void saveFlightsToFileOverwrite(const string& filename) {
+        ofstream file(filename, ios::out); // 使用ios::out打开文件，覆盖任何现有内容
         if (!file.is_open()) {
-            cerr << "无法打开文件进行写入: " << filename << endl;
+            cerr << "无法打开文件: " << filename << endl;
             return;
         }
 
-        // 写入数据
+        // 写入标题行
+        file << "FlightNumber,DepartureTime,StartPoint,EndPoint,FlightDuration,MaxCapacity,BookedPassengers,HasTakenOff\n";
+
+        // 写入数据...
         for (const auto& flight : flights) {
             file << flight.flightNumber << ","
                 << flight.departureTime << ","
@@ -67,11 +76,30 @@ public:
                 << flight.bookedPassengers << ","
                 << (flight.hasTakenOff ? "true" : "false") << "\n";
         }
-
-        // 关闭文件
         file.close();
     }
 
+    
+    void saveFlightsToFileAppend(const string& filename) {
+        ofstream file(filename, ios::app); // 使用ios::app打开文件以追加数据
+        if (!file.is_open()) {
+            cerr << "无法打开文件: " << filename << endl;
+            return;
+        }
+
+        // 写入数据...
+        for (const auto& flight : flights) {
+            file << flight.flightNumber << ","
+                << flight.departureTime << ","
+                << flight.startPoint << ","
+                << flight.endPoint << ","
+                << flight.flightDuration << ","
+                << flight.maxCapacity << ","
+                << flight.bookedPassengers << ","
+                << (flight.hasTakenOff ? "true" : "false") << "\n";
+        }
+        file.close();
+    }
 
     void displayAllFlights() {
         cout << "\n显示所有航班信息:\n";
@@ -115,7 +143,7 @@ public:
         }
 
         string line;
-        // 读取并忽略标题行（如果存在）
+        // 读取并忽略标题行
         getline(file, line);
 
         while (getline(file, line)) {
@@ -176,6 +204,7 @@ public:
         for (auto& flight : flights) {
             if (flight.flightNumber == flightNumber && !flight.hasTakenOff && flight.bookedPassengers < flight.maxCapacity) {
                 flight.bookedPassengers++;
+                saveFlightsToFileOverwrite("D:\\dat\\flights.txt");
                 cout << "本次航班购票成功 " << flightNumber << "\n";
                 return;
             }
@@ -187,6 +216,7 @@ public:
         for (auto& flight : flights) {
             if (flight.flightNumber == flightNumber && !flight.hasTakenOff && flight.bookedPassengers > 0) {
                 flight.bookedPassengers--;
+                saveFlightsToFileOverwrite("D:\\dat\\flights.txt");
                 cout << "订票已取消 " << flightNumber << "\n";
                 return;
             }
@@ -216,20 +246,13 @@ void userInterface(FlightManager& manager) {
         string endPoint;
         switch (choice) {
         case 1: {
-            // 读取并添加航班信息
-            Flight flight;
-            cout << "请依次输入航班号，出发时间，起点站，终点站 "
-                << "飞行时间，额定载量: ";
-            cin >> flight.flightNumber >> flight.departureTime >> flight.startPoint
-                >> flight.endPoint >> flight.flightDuration >> flight.maxCapacity;
-            flight.bookedPassengers = 0;
-            flight.hasTakenOff = false;
-            manager.addFlight(flight);
-            cout << "添加成功！请记得保存！";
+            manager.addFlight();
+            //cout << "添加成功！";
+            manager.saveFlightsToFileAppend("D:\\dat\\flights.txt");
             break;
         }
         case 2:
-            manager.saveFlightsToFile("D:\\dat\\flights.txt");
+            manager.saveFlightsToFileOverwrite("D:\\dat\\flights.txt");
             cout << "保存成功！以下是目前所有的航班信息：";
             manager.loadFlightsFromFile("D:\\dat\\flights.txt");
             manager.displayAllFlights();
@@ -240,25 +263,31 @@ void userInterface(FlightManager& manager) {
             manager.displayAllFlights();
             break;
         case 4:
-            manager.browseFlights();
+            manager.loadFlightsFromFile("D:\\dat\\flights.txt");
+            //manager.browseFlights();
+            manager.displayAllFlights();
             break;
         case 5:
             cout << "输入班次号以搜索: ";
+            manager.loadFlightsFromFile("D:\\dat\\flights.txt");
             cin >> flightNumber;
             manager.searchByFlightNumber(flightNumber);
             break;
         case 6:
             cout << "输入终点站以搜索: ";
+            manager.loadFlightsFromFile("D:\\dat\\flights.txt");
             cin >> endPoint;
             manager.searchByEndPoint(endPoint);
             break;
         case 7:
             cout << "输入航班号以订票: ";
+            manager.loadFlightsFromFile("D:\\dat\\flights.txt");
             cin >> flightNumber;
             manager.bookTicket(flightNumber);
             break;
         case 8:
             cout << "输入航班号来取消订票: ";
+            manager.loadFlightsFromFile("D:\\dat\\flights.txt");
             cin >> flightNumber;
             manager.cancelTicket(flightNumber);
             break;
