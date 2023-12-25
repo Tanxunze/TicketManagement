@@ -4,11 +4,13 @@
 #include <string>
 #include<sstream>
 #include<iomanip>
+#define cout std::cout
+#define cin std::cin
 using namespace std;
 
 // 定义航班信息结构体
 struct Flight {
-    int flightNumber;//班次
+    string flightNumber;//班次
     string departureTime;//起飞时间
     string startPoint;//起点
     string endPoint;//终点
@@ -24,6 +26,10 @@ private:
     vector<Flight> flights; // 存储所有航班信息
 
 public:
+    bool flightsEmpty() {
+        return flights.empty();
+    }
+    
     void addFlight() {
         Flight flight;
 
@@ -56,6 +62,10 @@ public:
 
 
     void saveFlightsToFileOverwrite(const string& filename) {
+        if (flights.empty()) {
+            cerr << "没有需要保存的内容！" << endl;
+            return;
+        }
         ofstream file(filename, ios::out); // 使用ios::out打开文件，覆盖任何现有内容
         if (!file.is_open()) {
             cerr << "无法打开文件: " << filename << endl;
@@ -77,6 +87,10 @@ public:
                 << (flight.hasTakenOff ? "true" : "false") << "\n";
         }
         file.close();
+
+        cout << "保存成功！以下是目前所有的航班信息：";
+        loadFlightsFromFile("D:\\dat\\flights.txt");
+        displayAllFlights();
     }
 
     
@@ -154,7 +168,7 @@ public:
 
             while (getline(ss, value, ',')) {
                 switch (field) {
-                case 0: flight.flightNumber = stoi(value); break;
+                case 0: flight.flightNumber = value; break;
                 case 1: flight.departureTime = value; break;
                 case 2: flight.startPoint = value; break;
                 case 3: flight.endPoint = value; break;
@@ -179,7 +193,7 @@ public:
         }
     }
 
-    void searchByFlightNumber(int flightNumber) {
+    void searchByFlightNumber(string flightNumber) {
         for (const auto& flight : flights) {
             if (flight.flightNumber == flightNumber) {
                 cout << "找到您查询的航班: " << flightNumber << " - "
@@ -200,7 +214,7 @@ public:
         }
     }
 
-    void bookTicket(int flightNumber) {
+    void bookTicket(string flightNumber) {
         for (auto& flight : flights) {
             if (flight.flightNumber == flightNumber && !flight.hasTakenOff && flight.bookedPassengers < flight.maxCapacity) {
                 flight.bookedPassengers++;
@@ -212,7 +226,7 @@ public:
         cout << "无法订购本次航班，班次不存在或已达额定载客量！ " << flightNumber << "\n";
     }
 
-    void cancelTicket(int flightNumber) {
+    void cancelTicket(string flightNumber) {
         for (auto& flight : flights) {
             if (flight.flightNumber == flightNumber && !flight.hasTakenOff && flight.bookedPassengers > 0) {
                 flight.bookedPassengers--;
@@ -223,11 +237,115 @@ public:
         }
         cout << "无法取消本次订票，班次号不存在或航班已发出！ " << flightNumber << "\n";
     }
+
+    void modifyFlight(string flightNumber) {
+        for (auto& flight : flights) {
+            if (flight.flightNumber == flightNumber) {
+                cout << "找到航班 " << flightNumber << ". 请输入新的信息 (直接按回车保留原值):\n";
+
+                string input;
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');  // 清除之前留下的换行符
+
+                cout << "新的起飞时间 (当前为 " << flight.departureTime << "): ";
+                getline(cin, input);
+                if (!input.empty()) flight.departureTime = input;
+
+                cout << "新的起点站 (当前为 " << flight.startPoint << "): ";
+                getline(cin, input);
+                if (!input.empty()) flight.startPoint = input;
+
+                cout << "新的终点站 (当前为 " << flight.endPoint << "): ";
+                getline(cin, input);
+                if (!input.empty()) flight.endPoint = input;
+
+                cout << "新的飞行时间（小时） (当前为 " << flight.flightDuration << "): ";
+                getline(cin, input);
+                if (!input.empty()) {
+                    stringstream ss(input);
+                    double newDuration;
+                    ss >> newDuration;
+                    if (!ss.fail()) {
+                        flight.flightDuration = newDuration;
+                    }
+                }
+
+                cout << "新的最大载客量 (当前为 " << flight.maxCapacity << "): ";
+                getline(cin, input);
+                if (!input.empty()) {
+                    stringstream ss(input);
+                    int newMaxCapacity;
+                    ss >> newMaxCapacity;
+                    if (!ss.fail()) {
+                        flight.maxCapacity = newMaxCapacity;
+                    }
+                }
+
+                cout << "是否已起飞 (y/n) (当前为 " << (flight.hasTakenOff ? "Yes" : "No") << "): ";
+                getline(cin, input);
+                if (!input.empty()) {
+                    flight.hasTakenOff = (input == "y" || input == "Y");
+                }
+
+                cout << "航班信息已更新.\n";
+                return;
+            }
+        }
+        cout << "未找到航班号为 " << flightNumber << " 的航班.\n";
+    }
+
+
+
+    void deleteFlight(string flightNumber) {
+        for (auto it = flights.begin(); it != flights.end(); ++it) {
+            if (it->flightNumber == flightNumber) {
+                flights.erase(it);
+                cout << "航班 " << flightNumber << " 已被删除.\n";
+                cout << "请使用保存选项保存更改！" << endl;
+                return;
+            }
+        }
+        cout << "未找到航班号为 " << flightNumber << " 的航班.\n";
+    }
+
+    int countLinesInFile(const string& filename) {
+        ifstream file(filename);
+        int lineCount = 0;
+        string line;
+
+        if (!file.is_open()) {
+            cerr << "无法打开文件: " << filename << endl;
+            return -1;
+        }
+
+        while (std::getline(file, line)) {
+            ++lineCount;
+        }
+
+        file.close();
+        return lineCount-1;
+    }
 };
 
 // 用户界面函数
 void userInterface(FlightManager& manager) {
     int choice;
+    cout << string(50, '-') << "欢迎使用机票管理系统" << string(50, '-') << endl;
+    cout<<endl;
+    // 检查flights是否为空
+    if (manager.flightsEmpty()) {
+        cout << "当前没有加载的航班信息。是否从文件加载? (y/n): ";
+        char loadChoice;
+        cin >> loadChoice;
+        if (loadChoice == 'y' || loadChoice == 'Y') {
+            string filename;
+            cout << "请输入文件地址: ";
+            cin >> filename;
+            manager.loadFlightsFromFile(filename);
+            cout << "成功从 "<<filename<<" 加载！" << endl;
+            cout << "共读取到 " << manager.countLinesInFile(filename) << " 条记录！" << endl;
+        }
+    }
+
     do {
         cout << "\n*** 机票管理系统 ***\n";
         cout << "1. 添加航班信息\n";
@@ -238,24 +356,23 @@ void userInterface(FlightManager& manager) {
         cout << "6. 使用终点站查询路线\n";
         cout << "7. 订票\n";
         cout << "8. 退票\n";
+        cout << "9. 修改航班信息\n";
+        cout << "10. 删除航班\n";
         cout << "0.退出系统\n";
         cout << "请输入数字选择: ";
         cin >> choice;
 
-        int flightNumber;
+        string flightNumber;
         string endPoint;
         switch (choice) {
         case 1: {
             manager.addFlight();
             //cout << "添加成功！";
-            manager.saveFlightsToFileAppend("D:\\dat\\flights.txt");
+            //manager.saveFlightsToFileAppend("D:\\dat\\flights.txt");
             break;
         }
         case 2:
             manager.saveFlightsToFileOverwrite("D:\\dat\\flights.txt");
-            cout << "保存成功！以下是目前所有的航班信息：";
-            manager.loadFlightsFromFile("D:\\dat\\flights.txt");
-            manager.displayAllFlights();
             break;
         case 3:
             manager.loadFlightsFromFile("D:\\dat\\flights.txt");
@@ -291,9 +408,19 @@ void userInterface(FlightManager& manager) {
             cin >> flightNumber;
             manager.cancelTicket(flightNumber);
             break;
+        case 9:
+            cout << "请输入要修改的航班号: ";
+            cin >> flightNumber;
+            manager.modifyFlight(flightNumber);
+            break;
+        case 10:
+            cout << "请输入要删除的航班号: ";
+            cin >> flightNumber;
+            manager.deleteFlight(flightNumber);
+            break;
         }
         if (choice != 0) {
-            cout << "\n操作完成！按下回车以返回主菜单";
+            cout << "\n按下回车以返回主菜单";
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             cin.get(); 
         }
