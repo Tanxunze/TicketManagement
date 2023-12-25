@@ -70,12 +70,12 @@ public:
         if (!file.is_open()) {
             cerr << "无法打开文件: " << filename << endl;
             return;
-        }
+        } 
 
         // 写入标题行
         file << "FlightNumber,DepartureTime,StartPoint,EndPoint,FlightDuration,MaxCapacity,BookedPassengers,HasTakenOff\n";
 
-        // 写入数据...
+        // 写入数据
         for (const auto& flight : flights) {
             file << flight.flightNumber << ","
                 << flight.departureTime << ","
