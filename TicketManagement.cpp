@@ -209,7 +209,7 @@ public:
                 return;
             }
         }
-        cout << "无法订购本次航班 " << flightNumber << "\n";
+        cout << "无法订购本次航班，班次不存在或已达额定载客量！ " << flightNumber << "\n";
     }
 
     void cancelTicket(int flightNumber) {
@@ -221,7 +221,7 @@ public:
                 return;
             }
         }
-        cout << "无法取消本次订票 " << flightNumber << "\n";
+        cout << "无法取消本次订票，班次号不存在或航班已发出！ " << flightNumber << "\n";
     }
 };
 
