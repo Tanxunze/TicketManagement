@@ -8,17 +8,24 @@
 #define cin std::cin
 using namespace std;
 
+struct SeatPricing {
+    string classType;  // 如 "经济舱", "商务舱", "头等舱"
+    double price;      // 对应的票价
+};
 // 定义航班信息结构体
 struct Flight {
-    string flightNumber;//班次
-    string departureTime;//起飞时间
-    string startPoint;//起点
-    string endPoint;//终点
-    double flightDuration;//飞行时间
-    int maxCapacity;//额定载量
-    int bookedPassengers;//已定票人数
-    bool hasTakenOff;//是否起飞
+    string flightNumber;
+    string departureTime;
+    string startPoint;
+    string endPoint;
+    double flightDuration;
+    int maxCapacity;
+    int bookedPassengers;
+    bool hasTakenOff;
+    string airline;
+    vector<SeatPricing> seatPricing; 
 };
+
 
 // 航班管理类
 class FlightManager {
@@ -26,6 +33,7 @@ private:
     vector<Flight> flights; // 存储所有航班信息
 
 public:
+    bool isExist = true;
     bool flightsEmpty() {
         return flights.empty();
     }
@@ -51,13 +59,33 @@ public:
         cout << "请输入最大载客量: ";
         cin >> flight.maxCapacity;
 
+        // 新增 - 输入航空公司信息
+        cout << "请输入航空公司: ";
+        cin.ignore(numeric_limits<streamsize>::max(), '\n'); // 清除输入缓冲区
+        getline(cin, flight.airline);
+
         flight.bookedPassengers = 0;  // 新航班默认已定票人数为0
         flight.hasTakenOff = false;   // 新航班默认尚未起飞
 
+        // 输入不同舱位的票价信息
+        int pricingCount;
+        cout << "请输入舱位等级数量: ";
+        cin >> pricingCount;
+        for (int i = 0; i < pricingCount; ++i) {
+            SeatPricing pricing;
+            cout << "请输入舱位类型（如经济舱、商务舱）: ";
+            cin >> ws;  // 忽略前面的空白字符
+            getline(cin, pricing.classType);
+            cout << "请输入" << pricing.classType << "的票价: ";
+            cin >> pricing.price;
+            flight.seatPricing.push_back(pricing);
+        }
+
         // 添加航班信息到列表
         flights.push_back(flight);
-        cout << "航班信息已添加.\n";
+        cout << "航班信息已添加。\n";
     }
+
 
 
 
@@ -70,10 +98,10 @@ public:
         if (!file.is_open()) {
             cerr << "无法打开文件: " << filename << endl;
             return;
-        } 
+        }
 
-        // 写入标题行
-        file << "FlightNumber,DepartureTime,StartPoint,EndPoint,FlightDuration,MaxCapacity,BookedPassengers,HasTakenOff\n";
+        // 写入标题行，添加舱位等级和票价的标题
+        file << "班次,起飞时间,起点站,终点站,飞行时间,额定载量,已订票人数,是否起飞,航空公司,舱位等级和票价\n";
 
         // 写入数据
         for (const auto& flight : flights) {
@@ -84,24 +112,30 @@ public:
                 << flight.flightDuration << ","
                 << flight.maxCapacity << ","
                 << flight.bookedPassengers << ","
-                << (flight.hasTakenOff ? "true" : "false") << "\n";
+                << (flight.hasTakenOff ? "true" : "false") << ","
+                << flight.airline;
+
+            // 对于每个航班，写入舱位等级和票价信息
+            for (const auto& pricing : flight.seatPricing) {
+                file << " " << pricing.classType << ":" << pricing.price;
+            }
+            file << "\n";  // 每条航班记录结束后换行
         }
         file.close();
 
-        cout << "保存成功！以下是目前所有的航班信息：";
-        loadFlightsFromFile("D:\\dat\\flights.txt");
+        cout << "保存成功！以下是目前所有的航班信息：\n";
+        loadFlightsFromFile(filename);
         displayAllFlights();
     }
 
+
     
-    void saveFlightsToFileAppend(const string& filename) {
-        ofstream file(filename, ios::app); // 使用ios::app打开文件以追加数据
+    /*void saveFlightsToFileAppend(const string& filename) {
+        ofstream file(filename, ios::app);
         if (!file.is_open()) {
             cerr << "无法打开文件: " << filename << endl;
             return;
         }
-
-        // 写入数据...
         for (const auto& flight : flights) {
             file << flight.flightNumber << ","
                 << flight.departureTime << ","
@@ -113,39 +147,46 @@ public:
                 << (flight.hasTakenOff ? "true" : "false") << "\n";
         }
         file.close();
-    }
+    }*/
 
     void displayAllFlights() {
         cout << "\n显示所有航班信息:\n";
-        cout <<endl;
-        cout << left;  // 左对齐、
+        cout << left;  // 左对齐
         int sum = 0;
         // 设置列宽，并为每列设置标题
-        cout << setw(15) << "班次"
-            << setw(20) << "起飞时间"
-            << setw(15) << "起点站"
-            << setw(15) << "终点站"
-            << setw(15) << "飞行时间"
-            << setw(15) << "额定载量"
-            << setw(20) << "已定票人数"
-            << setw(10) << "是否起飞" << endl;
-        cout << string(120, '-') << endl; 
+        cout << setw(10) << "班次"
+            << setw(15) << "起飞时间"
+            << setw(10) << "起点站"
+            << setw(10) << "终点站"
+            << setw(10) << "飞行时间"
+            << setw(10) << "额定载量"
+            << setw(15) << "已定票人数"
+            << setw(10) << "是否起飞"
+            << setw(20) << "航空公司"
+            << setw(30)<<"舱位等级和票价" << endl;
+        cout << string(150, '-') << endl;
         cout << endl;
         for (const auto& flight : flights) {
-            cout << setw(15) << flight.flightNumber
-                << setw(20) << flight.departureTime
-                << setw(15) << flight.startPoint
-                << setw(15) << flight.endPoint
-                << setw(15) << flight.flightDuration
-                << setw(15) << flight.maxCapacity
-                << setw(20) << flight.bookedPassengers
-                << setw(10) << (flight.hasTakenOff ? "Yes" : "No") << endl;
+            cout << setw(10) << flight.flightNumber
+                << setw(15) << flight.departureTime
+                << setw(10) << flight.startPoint
+                << setw(10) << flight.endPoint
+                << setw(10) << flight.flightDuration
+                << setw(10) << flight.maxCapacity
+                << setw(15) << flight.bookedPassengers
+                << setw(10) << (flight.hasTakenOff ? "是" : "否")
+                << setw(20) << flight.airline;
+
+            for (const auto& pricing : flight.seatPricing) {
+                cout << pricing.classType << ": "  << pricing.price << " ";
+            }
+            cout << endl;  // 完成该航班信息的显示，换行
             sum++;
         }
-        cout << endl;
-        cout << string(51, '-') << "共查询到 " << sum << " 条记录" << string(52, '-') << endl;;
-    }
 
+        cout << endl;
+        cout << string(60, '-') << "共查询到 " << sum << " 条记录" << string(73, '-') << endl;
+    }
 
 
     void loadFlightsFromFile(const string& filename) {
@@ -167,22 +208,41 @@ public:
             int field = 0;
 
             while (getline(ss, value, ',')) {
-                switch (field) {
-                case 0: flight.flightNumber = value; break;
-                case 1: flight.departureTime = value; break;
-                case 2: flight.startPoint = value; break;
-                case 3: flight.endPoint = value; break;
-                case 4: flight.flightDuration = stod(value); break;
-                case 5: flight.maxCapacity = stoi(value); break;
-                case 6: flight.bookedPassengers = stoi(value); break;
-                case 7: flight.hasTakenOff = (value == "1" || value == "true"); break;
+                if (field < 8) {  // 处理前8个基本字段
+                    switch (field) {
+                    case 0: flight.flightNumber = value; break;
+                    case 1: flight.departureTime = value; break;
+                    case 2: flight.startPoint = value; break;
+                    case 3: flight.endPoint = value; break;
+                    case 4: flight.flightDuration = stod(value); break;
+                    case 5: flight.maxCapacity = stoi(value); break;
+                    case 6: flight.bookedPassengers = stoi(value); break;
+                    case 7: flight.hasTakenOff = (value == "true"); break;
+                    }
+                }
+                else if (field == 8) {  // 处理航空公司
+                    flight.airline = value;
+                }
+                else {  // 处理舱位等级和票价
+                    stringstream ssp(value);
+                    string pricingInfo;
+                    while (getline(ssp, pricingInfo, ';')) {
+                        stringstream sspr(pricingInfo);
+                        string classType, price;
+                        getline(sspr, classType, ':');
+                        getline(sspr, price);
+                        SeatPricing pricing{ classType, stod(price) };
+                        flight.seatPricing.push_back(pricing);
+                    }
                 }
                 field++;
             }
             flights.push_back(flight);
         }
         file.close();
+        cout << "加载成功！共加载 " << flights.size() << " 条航班信息。\n";
     }
+
 
 
     void browseFlights() {
@@ -241,7 +301,7 @@ public:
     void modifyFlight(string flightNumber) {
         for (auto& flight : flights) {
             if (flight.flightNumber == flightNumber) {
-                cout << "找到航班 " << flightNumber << ". 请输入新的信息 (直接按回车保留原值):\n";
+                cout << "找到航班 " << flightNumber << ". 请输入新的信息 (直接按回车可保留原值):\n";
 
                 string input;
                 cin.ignore(numeric_limits<streamsize>::max(), '\n');  // 清除之前留下的换行符
@@ -285,12 +345,36 @@ public:
                 if (!input.empty()) {
                     flight.hasTakenOff = (input == "y" || input == "Y");
                 }
+                // 新增 - 修改舱位票价信息
+                cout << "当前舱位票价信息:\n";
+                for (const auto& pricing : flight.seatPricing) {
+                    cout << pricing.classType << ": " << pricing.price << "\n";
+                }
+                cout << "是否修改舱位票价信息? (y/n): ";
+                getline(cin, input);
+                if (input == "y" || input == "Y") {
+                    flight.seatPricing.clear();  // 清除旧的票价信息
+                    cout << "请输入新的舱位等级数量: ";
+                    int seatTypes;
+                    cin >> seatTypes;
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    for (int i = 0; i < seatTypes; i++) {
+                        SeatPricing pricing;
+                        cout << "请输入舱位类型（如经济舱、商务舱）: ";
+                        getline(cin, pricing.classType);
+                        cout << "请输入" << pricing.classType << "的票价: ";
+                        getline(cin, input);
+                        stringstream ss(input);
+                        ss >> pricing.price;
+                        flight.seatPricing.push_back(pricing);
+                    }
+                }
 
                 cout << "航班信息已更新.\n";
                 return;
             }
         }
-        cout << "未找到航班号为 " << flightNumber << " 的航班.\n";
+        cout << "未找到航班号为 " << flightNumber << " 的航班。\n";
     }
 
 
@@ -341,8 +425,11 @@ void userInterface(FlightManager& manager) {
             cout << "请输入文件地址: ";
             cin >> filename;
             manager.loadFlightsFromFile(filename);
-            cout << "成功从 "<<filename<<" 加载！" << endl;
-            cout << "共读取到 " << manager.countLinesInFile(filename) << " 条记录！" << endl;
+            if (manager.isExist) {
+                cout << "成功从 " << filename << " 加载！" << endl;
+                cout << "共读取到 " << manager.countLinesInFile(filename) << " 条记录！" << endl;
+                manager.isExist = true;
+            }
         }
     }
 
@@ -432,3 +519,6 @@ int main() {
     userInterface(manager);
     return 0;
 }
+
+
+
