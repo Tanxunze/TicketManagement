@@ -245,7 +245,7 @@ public:
 
 
 
-    void browseFlights() {
+    void browseFlights(string flightNumber) {
         for (const auto& flight : flights) {
             cout << "找到您查询的航班: " << flight.flightNumber << " - "
                 << "从 " << flight.startPoint << " 出发到 " << flight.endPoint
@@ -275,16 +275,48 @@ public:
     }
 
     void bookTicket(string flightNumber) {
+        cout << "请输入要订票的航班号: ";
+        cin >> flightNumber;
+
         for (auto& flight : flights) {
-            if (flight.flightNumber == flightNumber && !flight.hasTakenOff && flight.bookedPassengers < flight.maxCapacity) {
-                flight.bookedPassengers++;
-                saveFlightsToFileOverwrite("D:\\dat\\flights.txt");
-                cout << "本次航班购票成功 " << flightNumber << "\n";
+            if (flight.flightNumber == flightNumber && !flight.hasTakenOff) {
+                // 显示可用舱位和票价
+                cout << "可选舱位和票价: \n";
+                for (const auto& pricing : flight.seatPricing) {
+                    cout << pricing.classType << ": " << pricing.price << "元\n";
+                }
+
+                // 让用户选择舱位
+                string chosenClass;
+                cout << "请输入选择的舱位类型: ";
+                cin >> chosenClass;
+
+                // 验证舱位是否存在
+                bool classFound = false;
+                for (const auto& pricing : flight.seatPricing) {
+                    if (pricing.classType == chosenClass) {
+                        classFound = true;
+                        // 检查是否还有座位
+                        if (flight.bookedPassengers < flight.maxCapacity) {
+                            flight.bookedPassengers++;  // 增加已订票人数
+                            cout << "已成功订购" << chosenClass << "，票价为: " << pricing.price << "元\n";
+                        }
+                        else {
+                            cout << "抱歉，该航班已满员。\n";
+                        }
+                        break;
+                    }
+                }
+
+                if (!classFound) {
+                    cout << "未找到所选舱位类型，请重新选择。\n";
+                }
                 return;
             }
         }
-        cout << "无法订购本次航班，班次不存在或已达额定载客量！ " << flightNumber << "\n";
+        cout << "未找到航班号为 " << flightNumber << " 的航班或航班已起飞。\n";
     }
+
 
     void cancelTicket(string flightNumber) {
         for (auto& flight : flights) {
@@ -484,8 +516,8 @@ void userInterface(FlightManager& manager) {
             manager.searchByEndPoint(endPoint);
             break;
         case 7:
-            cout << "输入航班号以订票: ";
-            manager.loadFlightsFromFile("D:\\dat\\flights.txt");
+            //cout << "输入航班号以订票: ";
+            //manager.loadFlightsFromFile("D:\\dat\\flights.txt");
             cin >> flightNumber;
             manager.bookTicket(flightNumber);
             break;
@@ -519,6 +551,3 @@ int main() {
     userInterface(manager);
     return 0;
 }
-
-
-
