@@ -545,6 +545,7 @@ public:
     //订票与退票函数
     void bookTicketForUser(User& user, vector<Flight>& flights) {
         string flightNumber;
+        FlightManager manager;
         cout << "请输入要订票的航班号: ";
         cin >> flightNumber;
 
@@ -568,12 +569,18 @@ public:
                         classFound = true;
                         // 检查是否还有座位
                         if (flight.bookedPassengers < flight.maxCapacity) {
-                            flight.bookedPassengers++;  // 增加已订票人数
                             
                             // 添加到用户的订票信息中
                             user.bookings.push_back({ flight.flightNumber, chosenClass, pricing.price });
                             cout << "已成功订购" << chosenClass << "，票价为: " << pricing.price << "元\n";
-                            // 更新用户文件（假设 updateUserFile 函数已定义）
+                            manager.loadFlightsFromFile("D:\\dat\\flights.txt");
+                            
+                            for (auto& flight : manager.flights) {
+                                if (flight.flightNumber == flightNumber && !flight.hasTakenOff && flight.bookedPassengers <= flight.maxCapacity) {
+                                    flight.bookedPassengers++;
+                                }
+                            }
+                            manager.saveFlightsToFileOverwrite("D:\\dat\\flights.txt");
                             updateUserFile(user);
                         }
                         else {
